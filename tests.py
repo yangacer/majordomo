@@ -1,10 +1,9 @@
 import unittest
-import gc, sys
+import gc
 import zmq
 import logging
 import errno
 from cStringIO import StringIO
-from binascii import hexlify
 from threading import Thread, Timer
 from zmq.eventloop.ioloop import IOLoop, DelayedCallback
 
@@ -17,10 +16,12 @@ from majordomo.utils import verbose
 
 from nose_parameterized import parameterized
 
+
 def setUpModule():
     logger = logging.getLogger('mdp')
     logger.setLevel(logging.DEBUG)
     pass
+
 
 class EchoWorker(Worker):
 
@@ -30,10 +31,12 @@ class EchoWorker(Worker):
     def on_request(self, msg):
         return [b'ECHO'] + msg
 
+
 class SlowWorker(Worker):
 
     def __init__(self, ctx, broker):
         super(SlowWorker, self).__init__(ctx, broker, 'slow', 14.00)
+
 
 class EchoCaller(Client):
 
@@ -44,6 +47,7 @@ class EchoCaller(Client):
     def __call__(self):
         self.reply = self.request('echo', self.msg)
 
+
 class DiscoveryService(Client):
 
     def __init__(self, ctx, broker, service):
@@ -52,6 +56,7 @@ class DiscoveryService(Client):
 
     def __call__(self):
         self.reply = super(DiscoveryService, self).discovery(self.service)
+
 
 class AsyncServiceCaller(AsyncClient):
     """
@@ -66,9 +71,11 @@ class AsyncServiceCaller(AsyncClient):
         self.error_code = error_code
         self.reply = msg
 
+
 class ServiceCaller(Client):
     reply = None
     exception = None
+
     def __init__(self, ctx, broker, msg, service='echo'):
         self.service = service
         self.msg = msg
@@ -85,6 +92,7 @@ class ServiceCaller(Client):
 class RedundantReadyWorker(Worker):
 
     msg = None
+
     def __init__(self, ctx, broker):
         super(RedundantReadyWorker, self).__init__(ctx, broker, 'double_ready')
         self.stream.snd_ready('double_ready')
@@ -97,11 +105,13 @@ class RedundantReadyWorker(Worker):
             pass
         pass
 
+
 class DisconnectWorker(Worker):
 
     def __init__(self, ctx, broker):
         super(DisconnectWorker, self).__init__(ctx, broker, 'disconnect', 4.0)
         self.stream.snd_disconnect(None)
+
 
 class MalformBrokerForWorker(Broker):
 
@@ -112,11 +122,13 @@ class MalformBrokerForWorker(Broker):
 
     def process_worker(self, addr, msg):
         command = msg[0]
-        if command in [consts.command.reply, consts.command.ready ] :
+
+        if command in [consts.command.reply, consts.command.ready]:
             super(MalformBrokerForWorker, self).process_worker(addr, msg)
 
         self.stream.send_multipart([addr] + self.malform_msg)
         pass
+
 
 class MalformBrokerForClient(Broker):
 
@@ -128,6 +140,7 @@ class MalformBrokerForClient(Broker):
     def process_client(self, addr, msg):
         self.stream.send_multipart([addr, ''] + self.malform_msg)
         pass
+
 
 class testcases(unittest.TestCase):
 
@@ -194,15 +207,16 @@ class testcases(unittest.TestCase):
     @parameterized.expand([
         ('incomplete_message', [b'']),
         ('unknown_protocol', [b'', 'unknown']),
-        ('invalid_client', [b'', consts.client ]),
-        ('invalid_worker', [b'', consts.worker ]),
-        ('invalid_worker_commmand', [b'', consts.worker, b'\x0f' ]),
-        ('invalid_worker_reply', [b'', consts.worker, consts.command.reply ]),
+        ('invalid_client', [b'', consts.client]),
+        ('invalid_worker', [b'', consts.worker]),
+        ('invalid_worker_commmand', [b'', consts.worker, b'\x0f']),
+        ('invalid_worker_reply', [b'', consts.worker, consts.command.reply]),
     ])
     def test_broker_error_resistence(self, name, msg):
         broker = Broker(self.zmq_ctx)
         socket = self.zmq_ctx.socket(zmq.DEALER)
-        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], 'no_such_one', 'mmi.service')
+        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0],
+                                    'no_such_one', 'mmi.service')
         stream = mdp_stream(socket)
         stream.connect(broker.address[0])
 
@@ -228,6 +242,7 @@ class testcases(unittest.TestCase):
 
         class receiver(object):
             reply = None
+
             def __call__(self, msg):
                 self.reply = msg
                 pass
@@ -236,14 +251,15 @@ class testcases(unittest.TestCase):
         recver = receiver()
 
         stream.on_recv(recver)
-        stream.send_multipart([b'', consts.worker, consts.command.heartbeat ])
+        stream.send_multipart([b'', consts.worker, consts.command.heartbeat])
 
         ioloop = IOLoop.instance()
         ioloop.add_timeout(ioloop.time() + 1.0, ioloop.stop)
 
         ioloop.start()
 
-        self.assertEqual([b'', consts.worker, consts.command.disconnect], recver.reply)
+        self.assertEqual([b'', consts.worker, consts.command.disconnect],
+                         recver.reply)
 
         broker.close()
         stream.close()
@@ -306,7 +322,8 @@ class testcases(unittest.TestCase):
     def test_async_client_and_EchoWorker(self):
         broker = Broker(self.zmq_ctx)
         worker = EchoWorker(self.zmq_ctx, broker.address[0])
-        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], 'HelloEcho')
+        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0],
+                                    'HelloEcho')
 
         stopper = DelayedCallback(IOLoop.instance().stop, 1500)
         stopper.start()
@@ -340,7 +357,8 @@ class testcases(unittest.TestCase):
 
     def test_mmi_invalid_service(self):
         broker = Broker(self.zmq_ctx)
-        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], b'', b'mmi.invalid')
+        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], b'',
+                                    b'mmi.invalid')
 
         ioloop = IOLoop.instance()
         ioloop.add_timeout(ioloop.time() + 4.0, ioloop.stop)
@@ -356,7 +374,8 @@ class testcases(unittest.TestCase):
     def test_mmi_service_with_none_existing_service(self):
         broker = Broker(self.zmq_ctx)
         worker = EchoWorker(self.zmq_ctx, broker.address[0])
-        client = DiscoveryService(self.zmq_ctx, broker.address[0], 'no_such_one')
+        client = DiscoveryService(self.zmq_ctx, broker.address[0],
+                                  'no_such_one')
 
         proc = Thread(target=client)
         stopper = DelayedCallback(IOLoop.instance().stop, 3000)
@@ -378,8 +397,8 @@ class testcases(unittest.TestCase):
         """
         broker = Broker(self.zmq_ctx)
         worker = Worker(self.zmq_ctx, broker.address[0], 'dummy')
-        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], b'', 'dummy')
-
+        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], b'',
+                                    'dummy')
 
         ioloop = IOLoop.instance()
         ioloop.add_timeout(ioloop.time() + 4.0, ioloop.stop)
@@ -425,12 +444,16 @@ class testcases(unittest.TestCase):
         ('invalid_protocol_delim', [b'', b'!', b'']),
         ('invalid_protocol_name', [b'', b'', b'']),
         ('unknown_command', [b'', consts.worker, b'\x0f']),
-        ('short_request', [b'', consts.worker, consts.command.request, b'123']),
-        ('unexpected_request_delimiter', [b'', consts.worker, consts.command.request, b'123', '!', 'msg']),
+        ('short_request', [b'', consts.worker, consts.command.request,
+                           b'123']),
+        ('unexpected_request_delimiter', [b'', consts.worker,
+                                          consts.command.request, b'123', '!',
+                                          'msg']),
     ])
     def test_worker_error_resistence(self, name, msg):
         broker = MalformBrokerForWorker(self.zmq_ctx, msg)
-        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], 'Hello', 'echo')
+        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0],
+                                    'Hello', 'echo')
         worker = EchoWorker(self.zmq_ctx, broker.address[0])
 
         ioloop = IOLoop.instance()
@@ -452,7 +475,8 @@ class testcases(unittest.TestCase):
     ])
     def test_client_error_report(self, name, error_msg, msg):
         broker = MalformBrokerForClient(self.zmq_ctx, msg)
-        client = ServiceCaller(self.zmq_ctx, broker.address[0], ['Hello', 'world'], 'echo')
+        client = ServiceCaller(self.zmq_ctx, broker.address[0],
+                               ['Hello', 'world'], 'echo')
 
         ioloop = IOLoop.instance()
         ioloop.add_timeout(ioloop.time() + 1.0, ioloop.stop)
@@ -477,7 +501,8 @@ class testcases(unittest.TestCase):
     ])
     def test_async_client_error_report(self, name, error_msg, msg):
         broker = MalformBrokerForClient(self.zmq_ctx, msg)
-        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0], ['Hello', 'world'], 'echo')
+        client = AsyncServiceCaller(self.zmq_ctx, broker.address[0],
+                                    ['Hello', 'world'], 'echo')
 
         ioloop = IOLoop.instance()
         ioloop.add_timeout(ioloop.time() + 1.0, ioloop.stop)
@@ -494,7 +519,8 @@ class testcases(unittest.TestCase):
 
     def test_client_close_no_op(self):
         broker = Broker(self.zmq_ctx)
-        client = ServiceCaller(self.zmq_ctx, broker.address[0], 'Hello', 'echo')
+        client = ServiceCaller(self.zmq_ctx, broker.address[0],
+                               'Hello', 'echo')
         try:
             client.close()
         except:

@@ -7,6 +7,7 @@ from stream import heartbeat_stream
 from cStringIO import StringIO
 from utils import verbose
 
+
 class service_handle(object):
     name = None
     requests = None
@@ -18,10 +19,10 @@ class service_handle(object):
         self.waiting = []
 
     def __str__(self):
+        fmt = 'name: {}, request_cnt: {}, waiting: [{}]'
         workers = ', '.join(map(lambda w: w.identity, self.waiting))
-        return 'name: {}, request_cnt: {}, waiting: [{}]'.format(self.name,
-                                                                 len(self.requests),
-                                                                 workers)
+        return fmt.format(self.name, len(self.requests), workers)
+
 
 class worker_handle(object):
     identity = None
@@ -35,11 +36,15 @@ class worker_handle(object):
         pass
 
     def __str__(self):
+        fmt = 'id: {}, service: {}, liveness: {}'
+
         class dummy_service(object):
             name = None
-        return 'id: {}, service: {}, liveness: {}'.format(self.identity,
-                                                          (self.service or dummy_service).name,
-                                                          self.curr_liveness)
+
+        return fmt.format(self.identity,
+                          (self.service or dummy_service).name,
+                          self.curr_liveness)
+
     def reset_liveness(self):
         self.curr_liveness = self.init_liveness
 
@@ -65,13 +70,15 @@ class Broker(object):
         self.bind(bind_address)
         self.stream.on_heartbeat(self.on_heartbeat_, heartbeat_interval)
         self.stream.on_recv(self.dispatch)
-        logging.basicConfig(format="%(asctime)s %(name)s %(levelname)s %(message)s",
+
+        log_fmt = "%(asctime)s %(name)s %(levelname)s %(message)s"
+        logging.basicConfig(format=log_fmt,
                             datefmt="%Y-%m-%d %H:%M:%S",
                             level=logging.INFO)
 
     def __str__(self):
         output = StringIO()
-        print >>output, '-'*10
+        print >>output, '-' * 10
         print >>output, 'Services:'
         for _, s in self.services.items():
             print >>output, '\t', str(s)
@@ -84,7 +91,6 @@ class Broker(object):
         result = output.getvalue()
         output.close()
         return result
-
 
     def bind(self, address):
         self.address.append(address)
@@ -101,7 +107,6 @@ class Broker(object):
             return accu
         self.waiting = reduce(reducer, self.waiting, [])
         pass
-
 
     def dispatch(self, msg):
         verbose(msg)
@@ -139,7 +144,6 @@ class Broker(object):
         has_worker = hexlify(addr) in self.workers
         worker = self.require_worker(addr)
 
-
         if consts.command.ready == command:
             service = msg.pop(0)
             if has_worker or service.startswith(consts.internal_service):
@@ -153,7 +157,7 @@ class Broker(object):
                 self.worker_retire(worker, disconnect=True)
                 return
             addr, _ = msg[:2]
-            del msg [:2]
+            del msg[:2]
             self.stream.snd_to_client(addr, worker.service.name, msg)
             self.worker_onboard(worker)
             self.mediate(worker.service)
@@ -173,7 +177,7 @@ class Broker(object):
         if service == 'mmi.service':
             name = msg[-1]
             code = '200' if name in self.services else '404'
-        self.stream.snd_to_client(addr , service, code)
+        self.stream.snd_to_client(addr, service, code)
 
     def require_worker(self, addr):
         identity = hexlify(addr)

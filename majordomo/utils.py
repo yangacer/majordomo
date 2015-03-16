@@ -1,5 +1,6 @@
-import time, inspect
+import inspect
 import logging
+
 
 def get_cls_fn_from_bounded_method(method):
     if hasattr(method, 'func'):
@@ -7,6 +8,7 @@ def get_cls_fn_from_bounded_method(method):
     cls = str(method.im_self.__class__)
     fn = method.__func__.func_name
     return cls, fn
+
 
 def verbose(msg, logger_name='mdp'):
     logger = logging.getLogger(logger_name)
@@ -27,4 +29,3 @@ def verbose(msg, logger_name='mdp'):
     output = '{:<40} {:<20} {}'.format(cls, fn, msg)
     logger.debug(output)
     pass
-

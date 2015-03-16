@@ -14,5 +14,6 @@ class constants(object):
         pass
     pass
 
+
 class MDPError(RuntimeError):
     pass

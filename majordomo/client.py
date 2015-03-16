@@ -25,7 +25,7 @@ class Client(object):
     def request(self, service, msg, timeout=3.5, retry=0):
         assert retry >= 0
 
-        req = [ consts.client, service ]
+        req = [consts.client, service]
         if isinstance(msg, list):
             req.extend(msg)
         else:
@@ -49,7 +49,6 @@ class Client(object):
             else:
                 self.reconnect()
         raise OSError(ETIME, 'Request timeout')
-
 
     def discovery(self, service):
         return self.request('mmi.service', service)
@@ -76,17 +75,18 @@ class AsyncClient(object):
         """
         Request a service asynchronously.
 
-        Request for a `service` within `msg`. `callback` will be invoked asynchronously
-        when reponse is received, reponse is malformed, or timeout occured.
+        Request for a `service` within `msg`. `callback` will be invoked
+        asynchronously when reponse is received, reponse is malformed, or
+        timeout occured.
 
         Signature of `callback` is `callback(error_code, msg)`.
 
-        If error_code is None, then response is passed as `msg`. Otherwise, error_code
-        is an instance of OSError.
+        If error_code is None, then response is passed as `msg`. Otherwise,
+        error_code is an instance of OSError.
         """
         assert retry >= 0
 
-        req = [ b'', consts.client, service ]
+        req = [b'', consts.client, service]
         if isinstance(msg, list):
             req.extend(msg)
         else:
@@ -98,7 +98,8 @@ class AsyncClient(object):
 
         timeout_hdl = self.stream.io_loop.add_timeout(deadline, on_timeout)
 
-        on_recv = functools.partial(self.on_recv, callback, service, timeout_hdl)
+        on_recv = functools.partial(self.on_recv, callback, service,
+                                    timeout_hdl)
         self.stream.on_recv(on_recv)
 
         self.stream.send_multipart(req)
@@ -129,5 +130,3 @@ class AsyncClient(object):
     def close(self):
         self.stream.close()
         pass
-
-

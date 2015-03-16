@@ -2,18 +2,17 @@ import zmq
 import functools
 from mdp import constants as consts
 from zmq.eventloop.zmqstream import ZMQStream
-from weakref import ref as wref
-from safe_ref import safe_ref
 from utils import verbose
+
 
 class mdp_stream(ZMQStream):
 
-    client_msg          = [ b'', consts.client ]
-    ready_msg           = [ b'', consts.worker, consts.command.ready ]
-    request_msg         = [ b'', consts.worker, consts.command.request ]
-    reply_msg           = [ b'', consts.worker, consts.command.reply ]
-    heartbeat_msg       = [ b'', consts.worker, consts.command.heartbeat ]
-    disconnect_msg      = [ b'', consts.worker, consts.command.disconnect ]
+    client_msg      = [b'', consts.client]
+    ready_msg       = [b'', consts.worker, consts.command.ready]
+    request_msg     = [b'', consts.worker, consts.command.request]
+    reply_msg       = [b'', consts.worker, consts.command.reply]
+    heartbeat_msg   = [b'', consts.worker, consts.command.heartbeat]
+    disconnect_msg  = [b'', consts.worker, consts.command.disconnect]
 
     def __init__(self, socket):
         super(mdp_stream, self).__init__(socket)
@@ -50,7 +49,7 @@ class mdp_stream(ZMQStream):
             verbose(fulltext)
 
     def snd_request(self, address, service, msg):
-        fulltext = self.combine_(address,  self.request_msg, service, msg)
+        fulltext = self.combine_(address, self.request_msg, service, msg)
         self.send_multipart(fulltext)
         verbose(fulltext)
 
@@ -75,14 +74,13 @@ class heartbeat_stream(mdp_stream):
         if not self.closed():
             if internal_:
                 callback()
-            on_timeout = functools.partial(self.on_heartbeat, callback, interval, 1)
+            on_timeout = functools.partial(self.on_heartbeat, callback,
+                                           interval, 1)
             self.call_later(interval, on_timeout)
         pass
 
     # Define call_later only if it's not available
-    #if not hasattr(mdp_stream.io_loop, 'call_later'):
+    # if not hasattr(mdp_stream.io_loop, 'call_later'):
     def call_later(self, delta, callback):
         at = self.io_loop.time() + delta
         return self.io_loop.add_timeout(at, callback)
-
-

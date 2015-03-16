@@ -1,6 +1,5 @@
 import zmq
 import logging
-from safe_ref import safe_ref
 from stream import heartbeat_stream
 from mdp import constants as consts
 from mdp import MDPError
@@ -15,7 +14,9 @@ class Worker(object):
     init_liveness_ = None
     curr_liveness_ = 0
 
-    def __init__(self, zmq_ctx, broker, service_name, hb_interval=2.0, hb_liveness=3):
+    def __init__(self, zmq_ctx, broker, service_name,
+                 hb_interval=2.0, hb_liveness=3):
+
         self.zmq_ctx = zmq_ctx
         self.service_name = service_name
         self.broker = broker
